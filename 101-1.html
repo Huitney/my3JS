@@ -31,6 +31,8 @@ function init(){
 	scene = new THREE.Scene();
 	var grid = new THREE.GridHelper(100, 10, 'red', 'white');
 	scene.add(grid);
+	var axes = new THREE.AxisHelper(10);
+	scene.add(axes);
 }
 function animate(){
 	renderer.render(scene,camera);
