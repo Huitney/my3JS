@@ -26,7 +26,7 @@ var p = [], v, dq, front, now, next, ds, point;
 var raycaster;
 var mouse = new THREE.Vector2();
 var pickables = [];
-var pTimes = 1;
+var pTimes = 0;
 var base, bases = [];
 var myLine = null;
 var isWalking, plane;
@@ -78,7 +78,7 @@ function init(){
 	isWalking = false;
 	//walkingInit();
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
-
+	//document.addEventListener('contextmenu', event => event.preventDefault());
 }
 
 function animate(){
@@ -98,7 +98,6 @@ function walkingInit(){
 }
 
 function rotatingInit(){
-	//var p12 = new THREE.Vector3(p[now].x-p[front].x, p[now].y-p[front].y, p[now].z-p[front].z);
 	var p12 = p[now].clone().sub(p[front].clone());
 	theta1 = Math.atan2(p12.x, p12.z) + Math.PI;
 	truck.position.copy(p[now].clone());
@@ -227,15 +226,15 @@ function onDocumentMouseDown(event) {
 	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
 	mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 	
-	p.push(new THREE.Vector3(mouse.x, 0, mouse.y));
-	pTimes++;
-	//p[pTimes++] = new THREE.Vector3(mouse.x, 0, mouse.y);
 	// find intersections
 	raycaster.setFromCamera(mouse, camera);
 	var intersects = raycaster.intersectObjects(pickables);
 	if (intersects.length > 0) {
 		let bb = base.clone();
 		bb.position.copy (intersects[0].point);
+		if(pTimes === 0) p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
+		else p.push(new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z));
+		pTimes++;
 		bb.rotation.x = -Math.PI/2;
 		scene.add (bb);
 		bases.push (bb);
@@ -253,7 +252,7 @@ function onDocumentMouseDown(event) {
 		now = 0;
 		next = 1;
 		isWalking = true;
-		walkingInit();
+		walkingInit();		
 	}
 }
 </script>
