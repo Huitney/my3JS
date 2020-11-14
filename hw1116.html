@@ -18,18 +18,18 @@ import { MTLLoader } from 'https://unpkg.com/three/examples/jsm/loaders/MTLLoade
 import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoader.js';
 // my script
 
-var renderer, camera, scene, truck;
+var renderer, camera, scene, truck, axes;
 var angle = 0;
-var axes;
 var steps, numStep, moveTo, theta1, theta2, stepNum;
 var p = [], v, dq, front, now, next, ds, point;
 var raycaster;
 var mouse = new THREE.Vector2();
 var pickables = [];
-var pTimes = 0;
+var pTimes = 0, endPoint = 0;
 var base, bases = [];
 var myLine = null;
 var isWalking, plane;
+var truck;
 init();
 animate();
 
@@ -69,16 +69,71 @@ function init(){
 	base = new THREE.Mesh(new THREE.CircleGeometry(5, 10), new THREE.MeshNormalMaterial());
 	raycaster = new THREE.Raycaster();
 	
-	truck = build();
-	scene.add(truck);
-	truck.position.set(0, 0, 0);
-	truck.rotation.y = Math.PI/2;
 	//-----------------
 	p[0] = new THREE.Vector3(0, 0, 0);
 	isWalking = false;
-	//walkingInit();
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
-	//document.addEventListener('contextmenu', event => event.preventDefault());
+}
+
+function readModel (modelName, targetSize=40) {
+
+	var onProgress = function(xhr) {
+	if (xhr.lengthComputable) {
+		var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log(Math.round(percentComplete, 2) + '% downloaded');
+		}
+	};
+
+	var onError = function(xhr) {};
+
+	var mtlLoader =  new MTLLoader();
+	mtlLoader.setPath('models/');
+	mtlLoader.load(modelName+'.mtl', function(materials) {
+		materials.preload();
+
+		var objLoader =  new OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('models/');
+		objLoader.load(modelName+'.obj', function(object) {
+
+		let theObject =  unitize (object, targetSize);
+		theObject.add(new THREE.BoxHelper(theObject));
+		theObject.name = 'OBJ'
+		
+		truck = new THREE.Object3D();
+		truck.add(theObject);
+
+		scene.add (truck);
+
+		}, onProgress, onError);
+
+	});
+
+}
+
+function unitize (object, targetSize) {  
+
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+
+	// uniform scaling according to objSize
+	var objSize = Math.max (size.x, size.y, size.z);
+	var scaleSet = targetSize/objSize;
+
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet, -center.z*scaleSet);
+
+	return theObject;
 }
 
 function animate(){
@@ -108,17 +163,27 @@ function rotatingInit(){
 	
 	dq = 0.2;
 	
-	if(theta1 < Math.PI && theta2 > Math.PI){
+	if(theta1 < Math.PI & theta2 > Math.PI){
 		theta1 += Math.PI*2;
 	}
-	if(theta1 > Math.PI && theta2 < Math.PI){
+	if(theta1 > Math.PI & theta2 < Math.PI){
 		theta2 += Math.PI*2;
 	}
 	
-	steps = Math.floor((theta2-theta1)/dq);
 	if(theta1 > theta2){
-		steps = -steps;
-		dq = -dq;
+		if(theta1 - Math.PI > theta2)
+			steps = Math.floor ((Math.PI*2 - (theta1-theta2))/dq);
+		else {
+			steps = Math.floor ((theta1-theta2)/dq);
+			dq = -dq;
+		}
+	}
+	else {
+		if(theta2 - Math.PI > theta1){
+			steps = Math.floor ((Math.PI*2 - (theta2-theta1))/dq);
+			dq = -dq;
+		}
+		else steps = Math.floor ((theta2-theta1)/dq);
 	}
 	numStep = 0;
 	moveTo = theta1;
@@ -158,47 +223,6 @@ function rotating(){
 	
 }
 
-function build(){
-
-	var truck = new THREE.Group();
-	var carMaterial = new THREE.MeshLambertMaterial({color : 0xffff00});
-	var wheelMaterial = new THREE.MeshBasicMaterial({color : 0x000000});
-	var cylinderGeometry = new THREE.CylinderGeometry(2, 2, 10, 64);
-	var wheel1 = new THREE.Mesh(cylinderGeometry, wheelMaterial);
-	var wheel2 = wheel1.clone();
-	
-	var shape = new THREE.Shape();
-	shape.moveTo( 0,0 );
-	shape.lineTo( 0, 8 );
-	shape.lineTo( 10, 8 );
-	shape.lineTo( 10, 5 );
-	shape.lineTo( 14, 5 );
-	shape.lineTo( 15, 3 );
-	shape.lineTo( 15, 0 );
-	shape.lineTo( 0, 0 );
-
-	var extrudeSettings = {
-		steps: 2,
-		depth: 5,
-		bevelEnabled: true,
-		bevelThickness: 1,
-		bevelSize: 1,
-		bevelOffset: 0,
-		bevelSegments: 1
-	};
-	var geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-	var baseTruck = new THREE.Mesh(geometry, carMaterial);
-	
-	truck.add(baseTruck, wheel1, wheel2);
-	wheel1.position.set(2.5, 2, -3);
-	wheel2.position.set(2.5, 2, -12);
-	baseTruck.position.set(0, 3, 0);
-	baseTruck.rotation.y = !baseTruck.rotation.y*Math.PI/2;
-	wheel1.rotation.z = !wheel1.rotation.z*Math.PI/2;
-	wheel2.rotation.z = !wheel2.rotation.z*Math.PI/2;
-	return truck;
-}
-
 function makeLine(startPoint) {
   const MAX_LINE_POINTS = 100;
   
@@ -229,24 +253,29 @@ function onDocumentMouseDown(event) {
 	// find intersections
 	raycaster.setFromCamera(mouse, camera);
 	var intersects = raycaster.intersectObjects(pickables);
-	if (intersects.length > 0) {
-		let bb = base.clone();
-		bb.position.copy (intersects[0].point);
-		if(pTimes === 0) p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
-		else p.push(new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z));
-		pTimes++;
-		bb.rotation.x = -Math.PI/2;
-		scene.add (bb);
-		bases.push (bb);
-		if (myLine === null) {
-			myLine = makeLine (bb.position);
-		  scene.add (myLine);
-		} else {
-			addPoint (bb.position);
+	if(event.button === 0 & endPoint === 0){
+		if (intersects.length > 0) {
+			let bb = base.clone();
+			bb.position.copy (intersects[0].point);
+			if(pTimes === 0) p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
+			else p.push(new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z));
+			pTimes++;
+			bb.rotation.x = -Math.PI/2;
+			scene.add (bb);
+			bases.push (bb);
+			if (myLine === null) {
+				myLine = makeLine (bb.position);
+				scene.add (myLine);
+			} else {
+				addPoint (bb.position);
+			}
+			truck.position.copy(bb.position);
 		}
-		truck.position.copy(bb.position);
 	}
-	
+	else if(event.button === 2){
+		endPoint = 1;
+		addPoint(p[0]);
+	}
 	if(pTimes > 1){
 		front = p.length - 1;
 		now = 0;
