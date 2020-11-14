@@ -19,7 +19,7 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 // my script
 
 var renderer, camera, scene, truck, axes;
-var angle = 0;
+var angle = 0, theta = 0;
 var steps, numStep, moveTo, theta1, theta2, stepNum;
 var p = [], v, dq, front, now, next, ds, point;
 var raycaster;
@@ -69,14 +69,26 @@ function init(){
 	base = new THREE.Mesh(new THREE.CircleGeometry(5, 10), new THREE.MeshNormalMaterial());
 	raycaster = new THREE.Raycaster();
 	
+	//readModel(truck);
 	//-----------------
 	p[0] = new THREE.Vector3(0, 0, 0);
 	isWalking = false;
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
 }
 
-function readModel (modelName, targetSize=40) {
+function animate(){
+	theta += 0.01;
+	if(truck !== undefined)
+		truck.position.set(50*Math.cos(theta), 0, 50*Math.sin(theta));
+	if(isWalking) walking();
+	else if(pTimes > 1) rotating();
+	
+	renderer.render(scene,camera);
+	requestAnimationFrame( animate );
+}
 
+function readModel (modelName, targetSize=40) {
+	modelName = 'truck';
 	var onProgress = function(xhr) {
 	if (xhr.lengthComputable) {
 		var percentComplete = xhr.loaded / xhr.total * 100;
@@ -134,14 +146,6 @@ function unitize (object, targetSize) {
 	object.position.set (-center.x*scaleSet, -center.y*scaleSet, -center.z*scaleSet);
 
 	return theObject;
-}
-
-function animate(){
-	if(isWalking) walking();
-	else if(pTimes > 1) rotating();
-	
-	renderer.render(scene,camera);
-	requestAnimationFrame( animate );
 }
 
 function walkingInit(){
