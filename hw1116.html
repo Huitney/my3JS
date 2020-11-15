@@ -2,10 +2,18 @@
 <html>
 <head>
 <style>
+#heading{
+	text-align: center;
+	position:absolute;
+	width:100vw;
+}
 </style>
 </head>
 <body style='overflow:hidden'> 
-
+<div id='heading'>
+	<h1 style='color:gray'>truck model</h1>
+	<button id='toggle'>stop</button>
+</div>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
 
@@ -18,8 +26,20 @@ import { MTLLoader } from 'https://unpkg.com/three/examples/jsm/loaders/MTLLoade
 import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoader.js';
 // my script
 
+$('#toggle').click(
+function(){
+	if(press === false){
+		press = true;
+		$('#toggle').text('go');
+	}
+	else{
+		press = false;
+		$('#toggle').text('stop');
+	}
+});
+
 var renderer, camera, scene, truck, axes;
-var angle = 0, theta = 0;
+var angle = 0, rotat = 0;
 var steps, numStep, moveTo, theta1, theta2, stepNum;
 var p = [], v, dq, front, now, next, ds, point;
 var raycaster;
@@ -28,8 +48,9 @@ var pickables = [];
 var pTimes = 0, endPoint = 0;
 var base, bases = [];
 var myLine = null;
-var isWalking, plane;
+var isWalking, plane, press = false;
 var truck;
+
 init();
 animate();
 
@@ -69,7 +90,7 @@ function init(){
 	base = new THREE.Mesh(new THREE.CircleGeometry(5, 10), new THREE.MeshNormalMaterial());
 	raycaster = new THREE.Raycaster();
 	
-	//readModel(truck);
+	readModel('truck');
 	//-----------------
 	p[0] = new THREE.Vector3(0, 0, 0);
 	isWalking = false;
@@ -77,18 +98,19 @@ function init(){
 }
 
 function animate(){
-	theta += 0.01;
-	if(truck !== undefined)
-		truck.position.set(50*Math.cos(theta), 0, 50*Math.sin(theta));
-	if(isWalking) walking();
-	else if(pTimes > 1) rotating();
+	
+	if(truck !== undefined){
+		if(press === false){
+			if(isWalking) walking();
+			else if(pTimes > 1) rotating();
+		}
+	}
 	
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
 
 function readModel (modelName, targetSize=40) {
-	modelName = 'truck';
 	var onProgress = function(xhr) {
 	if (xhr.lengthComputable) {
 		var percentComplete = xhr.loaded / xhr.total * 100;
@@ -114,7 +136,8 @@ function readModel (modelName, targetSize=40) {
 		
 		truck = new THREE.Object3D();
 		truck.add(theObject);
-
+		truck.rotation.y = Math.PI/2;
+		
 		scene.add (truck);
 
 		}, onProgress, onError);
@@ -139,12 +162,11 @@ function unitize (object, targetSize) {
 	// uniform scaling according to objSize
 	var objSize = Math.max (size.x, size.y, size.z);
 	var scaleSet = targetSize/objSize;
-
+	
 	var theObject =  new THREE.Object3D();
 	theObject.add (object);
 	object.scale.set (scaleSet, scaleSet, scaleSet);
-	object.position.set (-center.x*scaleSet, -center.y*scaleSet, -center.z*scaleSet);
-
+	object.position.set (-center.x*scaleSet, center.y*scaleSet/6, -center.z*scaleSet);
 	return theObject;
 }
 
@@ -158,19 +180,19 @@ function walkingInit(){
 
 function rotatingInit(){
 	var p12 = p[now].clone().sub(p[front].clone());
-	theta1 = Math.atan2(p12.x, p12.z) + Math.PI;
+	theta1 = Math.atan2(p12.x, p12.z);
 	truck.position.copy(p[now].clone());
 	truck.rotation.y = theta1;
 	
 	var p23 = p[next].clone().sub(p[now].clone());
-	theta2 = Math.atan2(p23.x, p23.z) + Math.PI;
+	theta2 = Math.atan2(p23.x, p23.z);
 	
 	dq = 0.2;
 	
-	if(theta1 < Math.PI & theta2 > Math.PI){
+	if(theta1 < 0 & theta2 > 0){
 		theta1 += Math.PI*2;
 	}
-	if(theta1 > Math.PI & theta2 < Math.PI){
+	if(theta1 > 0 & theta2 < 0){
 		theta2 += Math.PI*2;
 	}
 	
@@ -224,7 +246,6 @@ function rotating(){
 		++numStep;
 		moveTo += dq;
 	}
-	
 }
 
 function makeLine(startPoint) {
@@ -273,14 +294,12 @@ function onDocumentMouseDown(event) {
 			} else {
 				addPoint (bb.position);
 			}
-			truck.position.copy(bb.position);
+			truck.position.copy(p[0].position);
 		}
 	}
 	else if(event.button === 2){
 		endPoint = 1;
 		addPoint(p[0]);
-	}
-	if(pTimes > 1){
 		front = p.length - 1;
 		now = 0;
 		next = 1;
