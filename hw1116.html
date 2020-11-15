@@ -11,7 +11,7 @@
 </head>
 <body style='overflow:hidden'> 
 <div id='heading'>
-	<h1 style='color:gray'>truck model</h1>
+	<h1 style='color:red'>truck model</h1>
 	<button id='toggle'>stop</button>
 </div>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -45,10 +45,10 @@ var p = [], v, dq, front, now, next, ds, point;
 var raycaster;
 var mouse = new THREE.Vector2();
 var pickables = [];
-var pTimes = 0, endPoint = 0;
+var pTimes = 0, endPoint = false;
 var base, bases = [];
 var myLine = null;
-var isWalking, plane, press = false;
+var isWalking, plane, press = false, turn;
 var truck;
 
 init();
@@ -94,6 +94,7 @@ function init(){
 	//-----------------
 	p[0] = new THREE.Vector3(0, 0, 0);
 	isWalking = false;
+	turn = false;
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
 }
 
@@ -101,8 +102,10 @@ function animate(){
 	
 	if(truck !== undefined){
 		if(press === false){
-			if(isWalking) walking();
-			else if(pTimes > 1) rotating();
+			if(endPoint === true){
+				if(isWalking) walking();
+				else rotating();
+			}
 		}
 	}
 	
@@ -187,7 +190,7 @@ function rotatingInit(){
 	var p23 = p[next].clone().sub(p[now].clone());
 	theta2 = Math.atan2(p23.x, p23.z);
 	
-	dq = 0.2;
+	dq = 0.1;
 	
 	if(theta1 < 0 & theta2 > 0){
 		theta1 += Math.PI*2;
@@ -278,7 +281,7 @@ function onDocumentMouseDown(event) {
 	// find intersections
 	raycaster.setFromCamera(mouse, camera);
 	var intersects = raycaster.intersectObjects(pickables);
-	if(event.button === 0 & endPoint === 0){
+	if(event.button === 0 & endPoint === false){
 		if (intersects.length > 0) {
 			let bb = base.clone();
 			bb.position.copy (intersects[0].point);
@@ -294,17 +297,20 @@ function onDocumentMouseDown(event) {
 			} else {
 				addPoint (bb.position);
 			}
-			truck.position.copy(p[0].position);
+			//truck.position.copy(p[0].position);
 		}
 	}
 	else if(event.button === 2){
-		endPoint = 1;
+		endPoint = true;
 		addPoint(p[0]);
 		front = p.length - 1;
 		now = 0;
 		next = 1;
 		isWalking = true;
 		walkingInit();		
+		var p23 = p[next].clone().sub(p[now].clone());
+		theta2 = Math.atan2(p23.x, p23.z);
+		truck.rotation.y = theta2;
 	}
 }
 </script>
