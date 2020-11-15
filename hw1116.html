@@ -38,18 +38,15 @@ function(){
 	}
 });
 
-//28
-var renderer, camera, scene, truck, axes;
-var steps, numStep, moveTo, theta1, theta2, stepNum;
-var p = [], v, dq, front, now, next, ds;
+//26
+var renderer, camera, scene, truck, axes;//5
+var steps, numStep, moveTo, theta1, theta2, stepNum;//6
+var p = [], v, dq, front, now, next, ds;//7
 var raycaster;
 var mouse = new THREE.Vector2();
-var pickables = [];
-var pTimes = 0, endPoint = false;
-var bases = [];
-var myLine = null;
-var isWalking, press = false;
-var truck;
+var bases = [], pickables = [];
+var myLine = null, press = false;
+var isWalking, x;
 
 init();
 animate();
@@ -94,18 +91,17 @@ function init(){
 	//-----------------
 	p[0] = new THREE.Vector3(0, 0, 0);
 	isWalking = false;
+	$('#toggle').value = 1;
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
 }
 
 function animate(){
-	
+
 	if(truck !== undefined){
 		if(press === false){
-			if(endPoint === true){
-				if(isWalking) walking();
-				else
-					rotating();
-			}
+			if(isWalking) walking();
+			else
+				rotating();
 		}
 	}
 	
@@ -252,17 +248,17 @@ function rotating(){
 }
 
 function makeLine(startPoint) {
-  const MAX_LINE_POINTS = 100;
-  
-  var geometry = new THREE.Geometry();
-	
+	const MAX_LINE_POINTS = 100;
+
+	var geometry = new THREE.Geometry();
+
 	for (var i = 0; i < MAX_LINE_POINTS; i++) {
 		geometry.vertices.push(startPoint.clone());
-  }
+	}
 
-  myLine =  new THREE.Line(geometry,  new THREE.LineBasicMaterial( { color: 0xffff00 } ));
+	myLine =  new THREE.Line(geometry,  new THREE.LineBasicMaterial( { color: 0xffff00 } ));
 
-  return myLine;
+	return myLine;
 }
 
 function addPoint(myPoint) {
@@ -270,6 +266,11 @@ function addPoint(myPoint) {
 	myLine.geometry.vertices.push (myPoint);
 	
 	myLine.geometry.verticesNeedUpdate = true;
+}
+
+function whichButton(event) {
+	x = event.buttons;
+	return false;
 }
 
 function onDocumentMouseDown(event) {
@@ -281,14 +282,15 @@ function onDocumentMouseDown(event) {
 	// find intersections
 	raycaster.setFromCamera(mouse, camera);
 	var intersects = raycaster.intersectObjects(pickables);
-	if(event.button === 0 & endPoint === false){
-		if (intersects.length > 0) {
+
+	if (intersects.length > 0 & x !== 2) {
+		whichButton(event);
+		if(x === 1){
 			var base = new THREE.Mesh(new THREE.CircleGeometry(5, 10), new THREE.MeshNormalMaterial());
 			let bb = base.clone();
 			bb.position.copy (intersects[0].point);
-			if(pTimes === 0) p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
+			if(p.length === 1 & myLine === null) p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
 			else p.push(new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z));
-			pTimes++;
 			bb.rotation.x = -Math.PI/2;
 			scene.add (bb);
 			bases.push (bb);
@@ -300,18 +302,17 @@ function onDocumentMouseDown(event) {
 			}
 			//truck.position.copy(p[0].position);
 		}
-	}
-	else if(event.button === 2){
-		endPoint = true;
-		addPoint(p[0]);
-		front = p.length - 1;
-		now = 0;
-		next = 1;
-		isWalking = true;
-		walkingInit();		
-		var p23 = p[next].clone().sub(p[now].clone());
-		theta2 = Math.atan2(p23.x, p23.z);
-		truck.rotation.y = theta2;
+		if(x === 2){
+			addPoint(p[0]);
+			front = p.length - 1;
+			now = 0;
+			next = 1;
+			isWalking = true;
+			walkingInit();		
+			var p23 = p[next].clone().sub(p[now].clone());
+			theta2 = Math.atan2(p23.x, p23.z);
+			truck.rotation.y = theta2;
+		}
 	}
 }
 </script>
