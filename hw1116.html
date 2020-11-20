@@ -13,7 +13,7 @@
 <div id='heading'>
 	<h1 style='color:red'>truck model</h1>
 	<button id='toggle'>stop</button>
-	<!--<button id='reset'>reset</button>-->
+	<button id='reset'>reset</button>
 </div>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
@@ -38,68 +38,70 @@ function(){
 		$('#toggle').text('stop');
 	}
 });
-/*
+
 $('#reset').click(
 function(){
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
+	scene.remove(p, bases, myLine);
 	myLine = null;
 	p = [];
 	bases = [];
 	isWalking = false;
+	now = undefined;
 });
-*/
-//16
-var renderer, camera, scene, truck, raycaster;//5
-var p = [], front, now, next;//4
+
+//22
+var renderer, camera, scene, truck, axes;//5
+var steps, numStep, moveTo, theta2, stepNum;//5
+var p = [], v, front, now, next;//6
+var raycaster;
 var bases = [], pickables = [];
-var myLine = null, press = false;
-var isWalking, initWalking, initRotating;
+var myLine = null;
+var isWalking, press = false;
 
 init();
 animate();
 
 function init(){
-	
+
 	renderer = new THREE.WebGLRenderer({antialias: true});
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0x888888);
 	document.body.appendChild(renderer.domElement);
-	
+
 	camera = new THREE.PerspectiveCamera (50, window.innerWidth/window.innerHeight, 1, 1000);
 	camera.position.z = 100;//(0,0,50)
-	
+
 	var controls = new OrbitControls (camera, renderer.domElement);
 	document.body.appendChild(renderer.domElement);
-	
+
 	scene = new THREE.Scene();
 	var grid = new THREE.GridHelper(240, 24, 'red', 'white');
 	scene.add(grid);
-	var axes = new THREE.AxesHelper(10);
+	axes = new THREE.AxesHelper(10);
 	scene.add(axes);
 	window.scene = scene;
-	
+
 	var light = new THREE.PointLight( 0xffffff, 1, 1000 );
 	light.position.set( 0, 40, 0 );
 	scene.add( light );
-	
+
 	var plane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0.5,
     visible: false
 	}));
 	scene.add(plane);
-	
+
 	plane.rotation.x = -Math.PI / 2;
 	pickables = [plane];
-	
+
 	raycaster = new THREE.Raycaster();
-	
+
 	readModel('truck');
 	//-----------------
 	p[0] = new THREE.Vector3(0, 0, 0);
 	isWalking = false;
-	initWalking = false;
-	initRotating = false;
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
 }
 
@@ -108,12 +110,11 @@ function animate(){
 	if(truck !== undefined){
 		if(press === false){
 			if(isWalking) walking();
-			else if(p[0].position === p[p.length - 1].position)
+			else if(now !== undefined)
 				rotating();
-				
 		}
 	}
-	
+
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
@@ -141,11 +142,11 @@ function readModel (modelName, targetSize=40) {
 		let theObject =  unitize (object, targetSize);
 		theObject.add(new THREE.BoxHelper(theObject));
 		theObject.name = 'OBJ'
-		
+
 		truck = new THREE.Object3D();
 		truck.add(theObject);
 		truck.rotation.y = Math.PI/2;
-		
+
 		scene.add (truck);
 
 		}, onProgress, onError);
@@ -170,7 +171,7 @@ function unitize (object, targetSize) {
 	// uniform scaling according to objSize
 	var objSize = Math.max (size.x, size.y, size.z);
 	var scaleSet = targetSize/objSize;
-	
+
 	var theObject =  new THREE.Object3D();
 	theObject.add (object);
 	object.scale.set (scaleSet, scaleSet, scaleSet);
@@ -179,31 +180,31 @@ function unitize (object, targetSize) {
 }
 
 function walkingInit(){
-	var v = p[next].clone().sub(p[now].clone());
+	v = p[next].clone().sub(p[now].clone());
 	var ds = 0.31;
-	var steps = Math.floor(v.length()/ds);
-	var moveTo = p[now].clone();
-	var stepNum = 0;
+	steps = Math.floor(v.length()/ds);
+	moveTo = p[now].clone();
+	stepNum = 0;
 }
 
 function rotatingInit(){
 	var p12 = p[now].clone().sub(p[front].clone());
 	var theta1 = Math.atan2(p12.x, p12.z);
-	//truck.position.copy(p[now].clone());
+	truck.position.copy(p[now].clone());
 	truck.rotation.y = theta1;
-	
+
 	var p23 = p[next].clone().sub(p[now].clone());
-	var theta2 = Math.atan2(p23.x, p23.z);
-	
+	theta2 = Math.atan2(p23.x, p23.z);
+
 	var dq = 0.1;
-	
+
 	if(theta1 < 0 & theta2 > 0){
 		theta1 += Math.PI*2;
 	}
 	if(theta1 > 0 & theta2 < 0){
 		theta2 += Math.PI*2;
 	}
-	var steps;
+
 	if(theta1 > theta2){
 		if(theta1 - Math.PI > theta2)
 			steps = Math.floor ((Math.PI*2 - (theta1-theta2))/dq);
@@ -219,15 +220,12 @@ function rotatingInit(){
 		}
 		else steps = Math.floor ((theta2-theta1)/dq);
 	}
-	var numStep = 0;
-	var moveTo = theta1;
+	numStep = 0;
+	moveTo = theta1;
 }
 
 function walking(){
-	if(initWalking === false){
-		walkingInit();
-		initWalking = true;
-	}
+	var ds = 0.31;
 	moveTo = moveTo.add(v.setLength(ds));
 	stepNum++;
 	if(stepNum > steps){
@@ -235,24 +233,23 @@ function walking(){
 		front++;
 		now++;
 		next++;
-		
+
 		front %= p.length;
 		now %= p.length;
 		next %= p.length;
-		
+
+		rotatingInit();
 		isWalking = false;
 	}
 	else truck.position.copy(moveTo);
 }
 
 function rotating(){
-	if(initRotating === false){
-		rotatingInit();
-		initRotating = true;
-	}
+	var dq = 0.1;
 	if(numStep > steps){
 		truck.rotation.y = theta2;
-		
+
+		walkingInit();
 		isWalking = true;
 	} 
 	else{
@@ -263,75 +260,69 @@ function rotating(){
 }
 
 function makeLine(startPoint) {
-	const MAX_LINE_POINTS = 100;
+  const MAX_LINE_POINTS = 100;
 
-	var geometry = new THREE.Geometry();
+  var geometry = new THREE.Geometry();
 
 	for (var i = 0; i < MAX_LINE_POINTS; i++) {
 		geometry.vertices.push(startPoint.clone());
-	}
+  }
 
-	myLine =  new THREE.Line(geometry,  new THREE.LineBasicMaterial( { color: 0xffff00 } ));
+  myLine =  new THREE.Line(geometry,  new THREE.LineBasicMaterial( { color: 0xffff00 } ));
 
-	return myLine;
+  return myLine;
 }
 
 function addPoint(myPoint) {
 	myLine.geometry.vertices.shift();
 	myLine.geometry.vertices.push (myPoint);
-	
+
 	myLine.geometry.verticesNeedUpdate = true;
 }
 
-function whichButton(event) {
-	x = event.buttons;
-	return false;
-}
-
 function onDocumentMouseDown(event) {
-
-	event.preventDefault();
 	var mouse = new THREE.Vector2();
+	event.preventDefault();
 	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
 	mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-	
+
 	// find intersections
 	raycaster.setFromCamera(mouse, camera);
 	var intersects = raycaster.intersectObjects(pickables);
-
-	if (intersects.length > 0) {
-		if(event.buttons === 1){
+	if(event.button === 0){
+		if (intersects.length > 0) {
 			var base = new THREE.Mesh(new THREE.CircleGeometry(5, 10), new THREE.MeshNormalMaterial());
 			let bb = base.clone();
 			bb.position.copy (intersects[0].point);
-			if(p.length === 1 & myLine === null) p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
-			else p.push(new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z));
 			bb.rotation.x = -Math.PI/2;
-			scene.add (bb);
 			bases.push (bb);
+			scene.add (bases[bases.length - 1]);
 			if (myLine === null) {
 				myLine = makeLine (bb.position);
 				scene.add (myLine);
+				p[0] = new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z);
 			} else {
 				addPoint (bb.position);
+				p.push(new THREE.Vector3(intersects[0].point.x, 0, intersects[0].point.z));
 			}
+			truck.position.copy(p[0].clone());
 		}
-		if(event.buttons === 2){
-			addPoint(p[0]);
-			front = p.length - 1;
-			now = 0;
-			next = 1;
-			isWalking = true;
-			var p23 = p[next].clone().sub(p[now].clone());
-			var theta2 = Math.atan2(p23.x, p23.z);
-			truck.position.set(p[0].clone().position);
-			truck.rotation.y = theta2;
-			document.removeEventListener('pointerdown', onDocumentMouseDown, false);
-			truck.position.set(p[0].clone().position);
-		}
+	}
+	else if(event.button === 2){
+		addPoint(p[0]);
+		front = p.length - 1;
+		now = 0;
+		next = 1;
+		isWalking = true;
+		walkingInit();		
+		var p23 = p[next].clone().sub(p[now].clone());
+		theta2 = Math.atan2(p23.x, p23.z);
+		truck.rotation.y = theta2;
+		document.removeEventListener('pointerdown', onDocumentMouseDown, false);
 	}
 }
 </script>
 
 </body>
 </html>
+
