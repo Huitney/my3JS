@@ -42,7 +42,8 @@ function(){
 $('#reset').click(
 function(){
 	document.addEventListener('pointerdown', onDocumentMouseDown, false);
-	scene.remove(p, bases, myLine);
+	scene.remove(p, myLine);
+	bases.forEach (function (bases) {scene.remove (bases)});
 	myLine = null;
 	p = [];
 	bases = [];
@@ -50,11 +51,10 @@ function(){
 	now = undefined;
 });
 
-//22
+//18
 var renderer, camera, scene, truck, axes;//5
 var steps, numStep, moveTo, theta2, stepNum;//5
-var p = [], v, front, now, next;//6
-var raycaster;
+var p = [], now, raycaster;
 var bases = [], pickables = [];
 var myLine = null;
 var isWalking, press = false;
@@ -180,20 +180,18 @@ function unitize (object, targetSize) {
 }
 
 function walkingInit(){
-	v = p[next].clone().sub(p[now].clone());
-	var ds = 0.31;
-	steps = Math.floor(v.length()/ds);
 	moveTo = p[now].clone();
 	stepNum = 0;
 }
 
 function rotatingInit(){
-	var p12 = p[now].clone().sub(p[front].clone());
+	if(now === 0) var p12 = p[now].clone().sub(p[p.length - 1].clone());
+	else var p12 = p[now].clone().sub(p[(now - 1) % p.length].clone());
 	var theta1 = Math.atan2(p12.x, p12.z);
 	truck.position.copy(p[now].clone());
 	truck.rotation.y = theta1;
 
-	var p23 = p[next].clone().sub(p[now].clone());
+	var p23 = p[(now + 1) % p.length].clone().sub(p[now].clone());
 	theta2 = Math.atan2(p23.x, p23.z);
 
 	var dq = 0.1;
@@ -225,18 +223,15 @@ function rotatingInit(){
 }
 
 function walking(){
+	var v = p[(now + 1) % p.length].clone().sub(p[now].clone());
 	var ds = 0.31;
+	var steps = Math.floor(v.length()/ds);
 	moveTo = moveTo.add(v.setLength(ds));
 	stepNum++;
 	if(stepNum > steps){
-		truck.position.copy(p[next]);
-		front++;
+		truck.position.copy(p[(now + 1) % p.length]);
 		now++;
-		next++;
-
-		front %= p.length;
 		now %= p.length;
-		next %= p.length;
 
 		rotatingInit();
 		isWalking = false;
@@ -310,12 +305,10 @@ function onDocumentMouseDown(event) {
 	}
 	else if(event.button === 2){
 		addPoint(p[0]);
-		front = p.length - 1;
 		now = 0;
-		next = 1;
 		isWalking = true;
 		walkingInit();		
-		var p23 = p[next].clone().sub(p[now].clone());
+		var p23 = p[(now + 1) % p.length].clone().sub(p[now].clone());
 		theta2 = Math.atan2(p23.x, p23.z);
 		truck.rotation.y = theta2;
 		document.removeEventListener('pointerdown', onDocumentMouseDown, false);
