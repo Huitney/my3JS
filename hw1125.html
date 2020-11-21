@@ -18,37 +18,63 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 // my script
 
 var camera, scene, renderer;
-
+var leafTexture, mesh, mapTex;
+var angle = 0;
 init();
 animate();
 
 function init() {
-	renderer = new THREE.WebGLRenderer({
-		antialias: true
-	});
-
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	document.body.appendChild(renderer.domElement);
-
+		/*const texture = loader.load([
+			'https://i.imgur.com/4mC6lFb.jpg',
+			'https://i.imgur.com/lPIsTrl.jpg',
+			'https://i.imgur.com/4K9Euzv.jpg',
+			'https://i.imgur.com/xnKJyZd.jpg',
+			'https://i.imgur.com/yoCgTa5.jpg',
+			'https://i.imgur.com/wv2M6XJ.jpg',
+		]);*/
 	scene = new THREE.Scene();
-	camera = new THREE.OrthographicCamera(-50, 50, 50, -50, -10, 100);
-	camera.position.z = 10;
+	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+	camera.position.z = 200;
+	renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor(0x888888);
 	window.addEventListener('resize', onWindowResize, false);
+	document.body.appendChild(renderer.domElement);
+	let controls = new OrbitControls(camera, renderer.domElement);
+
+	var floor = new THREE.Mesh (new THREE.PlaneGeometry(300,300), new THREE.MeshBasicMaterial());
+	floor.rotation.x = -Math.PI/2;
+	floor.position.y = -55;
+	scene.add (floor);
 
 	/////////////////////////////////////////////////////////////////////
 	let loader = new THREE.TextureLoader();
 	loader.crossOrigin = '';
-	const textureCube = loader.load( [
-		'https://i.imgur.com/4mC6lFb.jpg', 'https://i.imgur.com/lPIsTrl.jpg',
-		'https://i.imgur.com/4K9Euzv.jpg', 'https://i.imgur.com/xnKJyZd.jpg',
-		'https://i.imgur.com/yoCgTa5.jpg', 'https://i.imgur.com/wv2M6XJ.jpg'
-	] );
-	// Plane with default texture coordinates [0,1]x[0,1]
-	var texMat = new THREE.MeshBasicMaterial({color: 0xffffff, envMap: textureCube});
-	var floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), texMat);
-	scene.add(floor);
-}
+	leafTexture = loader.load('https://i.imgur.com/MNiPDww.png');
+	var map = [
+		'https://i.imgur.com/4mC6lFb.jpg',
+		'https://i.imgur.com/lPIsTrl.jpg',
+		'https://i.imgur.com/4K9Euzv.jpg',
+		'https://i.imgur.com/xnKJyZd.jpg',
+		'https://i.imgur.com/yoCgTa5.jpg',
+		'https://i.imgur.com/wv2M6XJ.jpg',
+	];
+	mapTex = loader.load(map);
+	scene.background = mapTex;
+	var leafTexMat = new THREE.MeshBasicMaterial({
+		map: leafTexture,
+		alphaTest: 0.5
+	});
+	var mapTexMat = new THREE.MeshBasicMaterial({
+		map: mapTex,
+		alphaTest: 0.5
+	});
+	var leaf = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), leafTexMat);
+	scene.add(leaf);
 
+	
+
+}
 function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
@@ -59,6 +85,7 @@ function animate() {
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
+
 
 </script>
 
