@@ -18,20 +18,12 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 // my script
 
 var camera, scene, renderer;
-var leafTexture, mesh, mapTex;
+var mesh, leaves;
 var angle = 0;
 init();
 animate();
 
 function init() {
-		/*const texture = loader.load([
-			'https://i.imgur.com/4mC6lFb.jpg',
-			'https://i.imgur.com/lPIsTrl.jpg',
-			'https://i.imgur.com/4K9Euzv.jpg',
-			'https://i.imgur.com/xnKJyZd.jpg',
-			'https://i.imgur.com/yoCgTa5.jpg',
-			'https://i.imgur.com/wv2M6XJ.jpg',
-		]);*/
 	scene = new THREE.Scene();
 	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
 	camera.position.z = 200;
@@ -41,7 +33,15 @@ function init() {
 	window.addEventListener('resize', onWindowResize, false);
 	document.body.appendChild(renderer.domElement);
 	let controls = new OrbitControls(camera, renderer.domElement);
-
+	
+	var light = new THREE.PointLight( 0xffffff, 1, 1000 );
+	var light1 = light.clone(), light2 = light.clone(), light3 = light.clone();
+	light.position.set( 10, 100, -10 );
+	light1.position.set( -10, 100, -10 );
+	light2.position.set( 0, 100, 10 );
+	light3.position.set( 0, 10, 0 );
+	scene.add( light );
+	
 	var floor = new THREE.Mesh (new THREE.PlaneGeometry(300,300), new THREE.MeshBasicMaterial());
 	floor.rotation.x = -Math.PI/2;
 	floor.position.y = -55;
@@ -50,7 +50,7 @@ function init() {
 	/////////////////////////////////////////////////////////////////////
 	let loader = new THREE.TextureLoader();
 	loader.crossOrigin = '';
-	leafTexture = loader.load('https://i.imgur.com/MNiPDww.png');
+	var leafTexture = loader.load('https://i.imgur.com/MNiPDww.png');
 	var map = [
 		'https://i.imgur.com/4mC6lFb.jpg',
 		'https://i.imgur.com/lPIsTrl.jpg',
@@ -59,7 +59,21 @@ function init() {
 		'https://i.imgur.com/yoCgTa5.jpg',
 		'https://i.imgur.com/wv2M6XJ.jpg',
 	];
-	mapTex = loader.load(map);
+	var mapTex = loader.load(map,
+		function(mapTex){
+			var mapTexMat = new THREE.MeshBasicMaterial({
+				map: mapTex,
+				alphaTest: 0.5
+			});
+			console.log('size: ' + mapTex.image.width + ', ' + mapTex.image.height);
+			let mesh = new THREE.Mesh(new THREE.PlaneGeometry(80, 60), texMat);
+			scene.add(mesh);
+		},
+		undefined,
+		function(xhr){
+			console.log('an error happened');
+		}
+	);
 	scene.background = mapTex;
 	var leafTexMat = new THREE.MeshBasicMaterial({
 		map: leafTexture,
@@ -70,8 +84,14 @@ function init() {
 		alphaTest: 0.5
 	});
 	var leaf = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), leafTexMat);
-	scene.add(leaf);
-
+	leaves = [];
+	for (let i = 0; i < 5; i++) {
+		let lt = leaf.clone();
+		lt.position.set ((-1+Math.random()*2)*180, 20, (-1+Math.random()*2)*180)
+		leaves.push (lt)
+		scene.add (lt)
+	}
+	buildCoke();
 	
 
 }
@@ -82,10 +102,56 @@ function onWindowResize() {
 }
 
 function animate() {
+	leaves.forEach (function(t) {t.lookAt (camera.position)})
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
 
+function buildCoke(){
+	var coke = new THREE.Group();
+	var lathe = new THREE.Path();
+	var lathe2 = new THREE.Path();
+	lathe.absarc(4, 0, 0.5, Math.PI, Math.PI * 2);
+	lathe.lineTo(6, 4);
+	lathe2.lineTo(6, 18);
+	lathe2.absarc(4, 20, 0.5, 0, Math.PI);
+	var cylinderGeometry = new THREE.CylinderGeometry(6, 6, 14, 64);
+	cylinderGeometry.openEnded = true;
+	let loader = new THREE.TextureLoader();
+	loader.crossOrigin = '';
+	var cokeTexture = loader.load('https://i.imgur.com/36IyD4e.jpg');
+	cokeTexture.wrapT = THREE.RepeatWrapping;
+	const cokeGeometry = new THREE.LatheGeometry(lathe.getPoints(), 32);
+	const coke2Geometry = new THREE.LatheGeometry(lathe2.getPoints(), 32);
+	const cokeMaterial = new THREE.MeshBasicMaterial({
+		map: cokeTexture,
+		alphaTest: 0.5
+	});
+	const cokeLathe = new THREE.Mesh( cylinderGeometry, cokeMaterial );
+	const cokeLathe2 = new THREE.Mesh( cokeGeometry, new THREE.MeshLambertMaterial({color : 0x7a7a7a}) );
+	const cokeLathe3 = new THREE.Mesh( coke2Geometry, new THREE.MeshLambertMaterial({color : 0x7a7a7a}) );
+	
+	var topGeometry = new THREE.CircleGeometry( 4.5, 32 );
+	var bottomGeometry = topGeometry.clone();
+	var topTexture = loader.load('https://i.imgur.com/3efieSk.png');
+	var bottomTexture = loader.load('https://i.imgur.com/hRaduJs.png');
+	const topMaterial = new THREE.MeshBasicMaterial({
+		map: topTexture,
+		alphaTest: 0.5
+	});
+	const bottomMaterial = new THREE.MeshBasicMaterial({
+		map: bottomTexture,
+		alphaTest: 0.5
+	});
+	const top = new THREE.Mesh( topGeometry, topMaterial );
+	const bottom = new THREE.Mesh( bottomGeometry, bottomMaterial );
+	top.rotation.x = -Math.PI/2;
+	top.position.y = 20;
+	bottom.rotation.x = Math.PI/2;
+	cokeLathe.position.y = 11;
+	coke.add(cokeLathe, top, bottom, cokeLathe2, cokeLathe3);
+	scene.add(coke);
+}
 
 </script>
 
