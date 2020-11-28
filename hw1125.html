@@ -6,7 +6,7 @@
 <style>
 </style>
 </head>
-<body>
+<body style='overflow:hidden'> 
 
 <script type ="module">
 javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
@@ -19,7 +19,6 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 
 var camera, scene, renderer;
 var mesh, leaves;
-var angle = 0;
 init();
 animate();
 
