@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>
+</title>
+<style>
+</style>
+</head>
+<body style='overflow:hidden'> 
+
+<script type ="module">
+javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+
+import * as THREE from 'https://unpkg.com/three/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three/examples/jsm/controls/OrbitControls.js';
+import { MTLLoader } from 'https://unpkg.com/three/examples/jsm/loaders/MTLLoader.js';
+import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoader.js';
+// my script
+
+var camera, scene, renderer;
+var mesh, trees;
+init();
+animate();
+
+function init() {
+	scene = new THREE.Scene();
+	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+	camera.position.z = 200;
+	renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor(0x888888);
+	window.addEventListener('resize', onWindowResize, false);
+	document.body.appendChild(renderer.domElement);
+	let controls = new OrbitControls(camera, renderer.domElement);
+	
+	var light = new THREE.PointLight( 0xffffff, 1, 1000 );
+	scene.add( light );
+	
+	var floor = new THREE.Mesh (new THREE.PlaneGeometry(300,300), new THREE.MeshBasicMaterial());
+	floor.rotation.x = -Math.PI/2;
+	floor.position.y = -55;
+	scene.add (floor);
+
+	/////////////////////////////////////////////////////////////////////
+	let loader = new THREE.TextureLoader();
+	loader.crossOrigin = '';
+	var treeTexture = loader.load('https://i.imgur.com/T8wxk3j.png');
+	var treeTexMat = new THREE.MeshBasicMaterial({
+		map: treeTexture,
+		alphaTest: 0.5
+	});
+	var tree = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), treeTexMat);
+	trees = [];
+	for (let i = 0; i < 5; i++) {
+		let tt = tree.clone();
+		tt.position.set ((-1+Math.random()*2)*180, -28, (-1+Math.random()*2)*180)
+		trees.push (tt)
+		scene.add (tt)
+	}
+
+}
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+	trees.forEach (function(t) {t.lookAt (camera.position.clone().projectOnPlane(new THREE.Vector3(0, 1, 0)).add(new THREE.Vector3(0, 10, 0)))})
+	renderer.render(scene,camera);
+	requestAnimationFrame( animate );
+}
+
+
+</script>
+
+</body>
+</html>
