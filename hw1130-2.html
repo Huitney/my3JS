@@ -18,7 +18,7 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 // my script
 
 var camera, scene, renderer;
-var mesh1, count = 0, mesh2;
+var mesh1, mesh2;
 init();
 animate();
 
@@ -92,28 +92,28 @@ function onWindowResize() {
 }
 
 function animate() {
-	count++;
-	if (count % 18 === 0) {  // a crude way to set animation frequency
+	animate.counter = (animate.counter === undefined) ? 0 : ++animate.counter;
+	if (animate.counter % 18 === 0) {  // a crude way to set animation frequency
 		textureAnimate();
 	}
-	moving();
+	moving(animate.counter);
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
 
-function moving(){
-	var step1 = count % 144, step2 = count % 160;
+function moving(count){
+	var step1 = count % 288, step2 = count % 320;
 	if(mesh1){
 		if(step1 === 0)
 			mesh1.position.x = -18;
 		else 
-			mesh1.position.x += 0.25;
+			mesh1.position.x += 0.125;
 	}
 	if(mesh2){
 		if(step2 === 0)
 			mesh2.position.x = 20;
 		else 
-			mesh2.position.x -= 0.25;
+			mesh2.position.x -= 0.125;
 	}
 }
 
