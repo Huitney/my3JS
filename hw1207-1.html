@@ -75,7 +75,10 @@ function init() {
 		var texMat = new THREE.MeshBasicMaterial({
 			map: texture,
 			alphaTest: 0.5,
-			side:THREE.DoubleSide
+			side:THREE.DoubleSide,
+			polygonOffset: true,
+			polygonOffsetFactor: -1.0,
+			polygonOffsetUnits: -4.0
 		});
 		mesh = new THREE.Mesh(buildGeometry(), texMat);
 		texture.wrapS = THREE.RepeatWrapping;
