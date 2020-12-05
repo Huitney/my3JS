@@ -57,7 +57,7 @@ function init() {
 	// load a resource
 	loader.load(
     // resource URL
-    'https://i.imgur.com/7Lxjjb0.png',
+    'https://i.imgur.com/X1anfdS.png',
     // Function when resource is loaded
     function(texture) {
 		// do something with the texture
@@ -73,7 +73,7 @@ function init() {
 		mesh = new THREE.Mesh(buildGeometry(), texMat);
 		texture.wrapS = THREE.RepeatWrapping;
 		texture.wrapT = THREE.RepeatWrapping;
-		
+		scene.add(mesh);
     },
 	undefined,
     // Function called when download errors
@@ -84,37 +84,38 @@ function init() {
 	var dice = new THREE.Group();
     scene.add (dice);
 
-	let px = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.4}));
+	let px = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.4, side:THREE.DoubleSide}));
 	dice.add (px);
 	px.rotation.y = Math.PI/2;
 	px.position.set (15,0,0);
 
-	let py = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.4}));
+	let py = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.4, side:THREE.DoubleSide}));
 	dice.add (py);
 	py.rotation.x = -Math.PI/2;
 	py.position.set (0, 15,0);
 
-	let pz = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity:0.4}));
+	let pz = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity:0.4, side:THREE.DoubleSide}));
 	dice.add (pz);
 	pz.position.set (0, 0, 15);
     
-	let nx = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.4}));
+	let nx = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.4, side:THREE.DoubleSide}));
 	dice.add (nx);
-	px.rotation.y = Math.PI/2;
-	px.position.set (-15,0,0);
+	nx.rotation.y = Math.PI/2;
+	nx.position.set (-15,0,0);
 
-	let ny = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.4}));
+	let ny = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.4, side:THREE.DoubleSide}));
 	dice.add (ny);
-	py.rotation.x = -Math.PI/2;
-	py.position.set (0, -15,0);
+	ny.rotation.x = -Math.PI/2;
+	ny.position.set (0, -15,0);
 
-	let nz = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity:0.4}));
+	let nz = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity:0.4, side:THREE.DoubleSide}));
 	dice.add (nz);
-	pz.position.set (0, 0, -15);
+	nz.position.set (0, 0, -15);
 	
     faces = {'px': px, 'py':py, 'pz':pz, 'nx':nx, 'ny':ny, 'nz':nz};
 	
 	setTimeout (countDown, 0);
+	
 }
 
 function searchFace () {
@@ -165,8 +166,18 @@ function onWindowResize() {
 
 function animate() {
 	var which = searchFace();
-	mesh.position.copy(faces[which].clone());
-	mesh.rotation.copy(faces[which].rotation);
+	if(mesh){
+		mesh.position.copy(faces[which].position);
+		mesh.rotation.copy(faces[which].rotation);
+		if(which === 'nx') 
+			mesh.rotation.y = -Math.PI/2;
+		else if(which === 'ny'){
+			//mesh.rotation.z = Math.PI;
+			mesh.rotation.x = Math.PI/2;
+		}
+		else if(which === 'nz')
+			mesh.rotation.y = Math.PI;
+	}
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
