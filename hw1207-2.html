@@ -14,8 +14,7 @@
 <body style='overflow:hidden'> 
 
 <div id='heading'>
-	<h1 style='color:red'>Counter</h1>
-	<button id='start'>Start</button>
+	<h1 style='color:red'>Counter Dice</h1>
 </div>
 
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -29,15 +28,8 @@ import { MTLLoader } from 'https://unpkg.com/three/examples/jsm/loaders/MTLLoade
 import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoader.js';
 // my script
 
-$('#start').click ( function() {
-	clockOn = true;
-	setTimeout (countDown, 0);
-	counter = 5;
-	scene.add(mesh);
-});
-
 var camera, scene, renderer;
-var mesh,  counter, clockOn;
+var mesh, faces;
 var lit = true;
 init();
 animate();
@@ -56,10 +48,8 @@ function init() {
 	var light = new THREE.PointLight( 0xffffff, 1, 1000 );
 	scene.add( light );
 	
-	var floor = new THREE.Mesh (new THREE.PlaneGeometry(300,300), new THREE.MeshBasicMaterial());
-	floor.rotation.x = -Math.PI/2;
-	floor.position.y = -55;
-	scene.add (floor);
+	var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+    scene.add(gridXZ);
 
 	/////////////////////////////////////////////////////////////////////
 	var loader = new THREE.TextureLoader();
@@ -75,12 +65,14 @@ function init() {
 		var texMat = new THREE.MeshBasicMaterial({
 			map: texture,
 			alphaTest: 0.5,
-			side:THREE.DoubleSide
+			side:THREE.DoubleSide,
+			polygonOffset: true,
+			polygonOffsetFactor: -1.0,
+			polygonOffsetUnits: -4.0
 		});
 		mesh = new THREE.Mesh(buildGeometry(), texMat);
 		texture.wrapS = THREE.RepeatWrapping;
 		texture.wrapT = THREE.RepeatWrapping;
-		
 		
     },
 	undefined,
@@ -89,6 +81,80 @@ function init() {
 		console.log('An error happened');
     }
 	);
+	var dice = new THREE.Group();
+    scene.add (dice);
+
+	let px = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.4}));
+	dice.add (px);
+	px.rotation.y = Math.PI/2;
+	px.position.set (15,0,0);
+
+	let py = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.4}));
+	dice.add (py);
+	py.rotation.x = -Math.PI/2;
+	py.position.set (0, 15,0);
+
+	let pz = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity:0.4}));
+	dice.add (pz);
+	pz.position.set (0, 0, 15);
+    
+	let nx = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.4}));
+	dice.add (nx);
+	px.rotation.y = Math.PI/2;
+	px.position.set (-15,0,0);
+
+	let ny = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:0.4}));
+	dice.add (ny);
+	py.rotation.x = -Math.PI/2;
+	py.position.set (0, -15,0);
+
+	let nz = new THREE.Mesh (new THREE.PlaneGeometry (30,30), new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity:0.4}));
+	dice.add (nz);
+	pz.position.set (0, 0, -15);
+	
+    faces = {'px': px, 'py':py, 'pz':pz, 'nx':nx, 'ny':ny, 'nz':nz};
+	
+	setTimeout (countDown, 0);
+}
+
+function searchFace () {
+	var maxDot = -1, which;
+  
+	var normals = {px: new THREE.Vector3(1,0,0), py: new THREE.Vector3(0,1,0), pz: new THREE.Vector3(0,0,1), nx: new THREE.Vector3(-1,0,0), ny: new THREE.Vector3(0,-1,0), nz: new THREE.Vector3(0,0,-1)};
+	var centers = {px: new THREE.Vector3(15,0,0), py: new THREE.Vector3(0,15,0), pz: new THREE.Vector3(0,0,15), nx: new THREE.Vector3(-15,0,0), ny: new THREE.Vector3(0,-15,0), nz: new THREE.Vector3(0,0,-15)};
+  
+	let dd, point;
+	point = camera.position.clone().sub (centers['px']).normalize();
+	if ((dd = normals['px'].dot (point)) > maxDot) {
+		maxDot = dd;
+		which = 'px';
+	}
+	point = camera.position.clone().sub (centers['py']).normalize();
+	if ((dd = normals['py'].dot (point)) > maxDot) {
+		maxDot = dd;
+		which = 'py';
+	}
+	point = camera.position.clone().sub (centers['pz']).normalize();
+	if ((dd = normals['pz'].dot (point)) > maxDot) {
+		maxDot = dd;
+		which = 'pz';
+	}
+	point = camera.position.clone().sub (centers['nx']).normalize();
+	if ((dd = normals['nx'].dot (point)) > maxDot) {
+		maxDot = dd;
+		which = 'nx';
+	}
+	point = camera.position.clone().sub (centers['ny']).normalize();
+	if ((dd = normals['ny'].dot (point)) > maxDot) {
+		maxDot = dd;
+		which = 'ny';
+	}
+	point = camera.position.clone().sub (centers['nz']).normalize();
+	if ((dd = normals['nz'].dot (point)) > maxDot) {
+		maxDot = dd;
+		which = 'nz';
+	}
+	return which;
 }
 
 function onWindowResize() {
@@ -98,44 +164,21 @@ function onWindowResize() {
 }
 
 function animate() {
-	
+	var which = searchFace();
+	mesh.position.copy(faces[which].clone());
+	mesh.rotation.copy(faces[which].rotation);
 	renderer.render(scene,camera);
 	requestAnimationFrame( animate );
 }
 
 function countDown() {
-	if (clockOn === false) {
-		scene.remove(mesh);
-		counter = 10;
-		setTimeout (blinker, 0);
-		return;
-	}
-	else  // clock is still one: set next timeout
-		setTimeout (countDown, 1000);
+
+	setTimeout (countDown, 1000);
 	if (mesh) {
 		var texture = mesh.material.map;
 		texture.offset.x += 0.2;
 	}
-	counter--;
-	if (counter === 0)
-		clockOn = false;
-}
-
-function blinker() {
-	var plane = new THREE.Mesh (new THREE.PlaneGeometry(50,50), new THREE.MeshBasicMaterial({color:0xff0000}));
-	scene.add(plane);
-	var oldColor = new THREE.Color();
-	plane.material.color.getHSL (oldColor);
-	if (lit === true)
-		plane.material.color.setHSL (oldColor.h, oldColor.s, 1.0);
-	else
-		plane.material.color.setHSL (oldColor.h, oldColor.s, oldColor.l);  
-	lit = ! lit;
-
-	if (counter > 0){
-		setTimeout (blinker, 200);
-		counter--;
-	}
+	
 }
 
 function buildGeometry() {
