@@ -31,7 +31,8 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 var camera, scene, renderer;
 var sceneHUD, cameraHUD;
 var raycaster;
-var bullet, aframe, cubes, gun;
+var aframe, cubes, gun;
+var shootDirection = [new THREE.Vector3(0, 0, 0),], bullets = [];
 init();
 animate();
 
@@ -103,7 +104,8 @@ function init() {
 	//bullet
 	var bulletGeometry = new THREE.SphereGeometry( 5, 32, 32 );
 	var bulletMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
-	bullet = new THREE.Mesh( bulletGeometry, bulletMaterial );
+	var bullet = new THREE.Mesh( bulletGeometry, bulletMaterial );
+	bullets.push(bullet);
 	
 	//gun
 	var loader = new THREE.TextureLoader();
@@ -126,6 +128,7 @@ function init() {
     }
 	);
 	raycaster = new THREE.Raycaster();
+	shooting();
 }
 
 function onWindowResize() {
@@ -154,7 +157,7 @@ function onWindowResize() {
 }
 
 function hudButtonPick (event) {
-	shooting();
+	newBullet();
 	// convert to NDC
 	let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
 	let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -165,9 +168,9 @@ function hudButtonPick (event) {
 	let xx = ndcX * halfW;
 	let yy = ndcY * halfH;
 	let mouse = new THREE.Vector2 (xx, yy);
+	/*
 	raycaster.setFromCamera(mouse, camera);
 	var intersects = raycaster.intersectObjects(cubes, true);
-	
 	
 	let hit = false;
 	for(let i = 0;i < cubes.length;i++){
@@ -176,11 +179,49 @@ function hudButtonPick (event) {
 			hit = true;
 		}
 	}
-	if(hit === false) console.log ('miss');
+	if(hit === false) console.log ('miss');*/
+}
+
+function newBullet(){
+	var bb = bullets[0].clone();
+	bullets.push(bb);
+	scene.add(bb);
+	bb.position.copy(camera.clone().position);
+	
+	var direction = new THREE.Vector3();
+	camera.getWorldDirection(direction);
+	shootDirection.push(direction);
 }
 
 function shooting(){
-	var bb = bullet.clone();
+	var speed = 1;
+	for(let i = 1;i < bullets.length;i++){
+		//moving
+		bullets[i].position.x += shootDirection[i].x * speed;
+		bullets[i].position.y += shootDirection[i].y * speed;
+		bullets[i].position.z += shootDirection[i].z * speed;
+		//out
+		if(bullets[i].position.x > 150 | bullets[i].position.x < -150 | 
+		bullets[i].position.z > 150 | bullets[i].position.z < -150){
+			scene.remove(bullets[i]);
+			bullets.pop(bullets[i]);
+			shootDirection.pop(shootDirection[i]);
+		}
+		//hit
+		
+		for(let j = 0;j < cubes.length;j++){
+			if(bullets[i].position.distanceTo(cubes[j].position) < 15){
+				explosion(cubes[j]);
+				cubes.pop(cubes[j]);
+			}
+		}
+		
+	}
+	setTimeout (shooting, 100);
+}
+
+function explosion(target){
+	consol.log('hit');
 }
 
 function moving(event){
