@@ -30,8 +30,8 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 
 var camera, scene, renderer;
 var sceneHUD, cameraHUD;
-var raycaster;
-var aframe, spheres, gun;
+var spheres, gun;
+var axes;
 var shootDirection = [new THREE.Vector3(0, 0, 0),], bullets = [];
 init();
 animate();
@@ -56,7 +56,8 @@ function init() {
 	
 	var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
     scene.add(gridXZ);
-	
+	axes = new THREE.AxisHelper(10);
+	scene.add(axes);
 	//document.addEventListener('pointerdown', hudButtonPick, false);
 	window.addEventListener("keydown", keyboardEvent);
 	/////////////////////////////////////////////////////////////////////
@@ -79,16 +80,6 @@ function init() {
 	var halfH = 10;
 	var halfW = whRatio * halfH;
 
-	aframe = new THREE.Group();
-
-	let fframe = new THREE.Mesh(new THREE.PlaneGeometry(2 * halfW, 2 * halfW / 10), new THREE.MeshBasicMaterial({
-		color: 0x2c1378,
-		depthTest: false,  // always drawn
-		depthWrite: true,
-		opacity:0.4,
-		transparent:true
-	}));
-
 	let button = new THREE.Mesh(new THREE.CircleGeometry(halfW / 15, 32), new THREE.MeshBasicMaterial({
 		color: 0xf0f595,
 		depthTest: false,  // always drawn
@@ -96,13 +87,11 @@ function init() {
 		transparent:true
 	}));
 
-	sceneHUD.add(aframe);
-	aframe.add(fframe);
-	aframe.add(button);
-	aframe.position.set(0, -(halfH - halfW / 10), 0);
+	sceneHUD.add(button);
+	button.position.set(window.innerWidth / 2, window.innerHeight / 2, 0);
 	
 	//bullet
-	var bulletGeometry = new THREE.SphereGeometry( 5, 32, 32 );
+	var bulletGeometry = new THREE.SphereGeometry( 2, 32, 32 );
 	var bulletMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
 	var bullet = new THREE.Mesh( bulletGeometry, bulletMaterial );
 	bullets.push(bullet);
@@ -120,14 +109,14 @@ function init() {
 		});
 		gun = new THREE.Mesh(new THREE.PlaneGeometry(10, 20), texMat);
 		sceneHUD.add(gun);
-		gun.position.set(0, -(halfH - halfW / 10)+3, 0)
+		gun.position.set(-1.5, -(halfH - halfW / 10)+6.3, 0)
     },
 	undefined,
     function(xhr) {
 		console.log('An error happened');
     }
 	);
-	raycaster = new THREE.Raycaster();
+	
 	shootingAnimate();
 }
 
@@ -165,10 +154,14 @@ function newBullet(){
 	var direction = new THREE.Vector3();
 	camera.getWorldDirection(direction);
 	shootDirection.push(direction);
+	
+	bb.position.x += direction.x * 20;
+	bb.position.y += direction.y * 20;
+	bb.position.z += direction.z * 20;
 }
 
 function shootingAnimate(){
-	var speed = 1;
+	var speed = 2;
 	for(let i = 1;i < bullets.length;i++){
 		if(bullets[i]){
 			//moving
@@ -178,8 +171,7 @@ function shootingAnimate(){
 			
 			//hit
 			for(let j = 0;j < spheres.length;j++){
-				console.log(bullets[i].position);
-				if(bullets[i].position.distanceTo(spheres[j].position) < 15){
+				if(bullets[i].position.distanceTo(spheres[j].position) < 12){
 					explosion(spheres[j]);
 					spheres.splice(j, 1);
 				}
@@ -208,18 +200,16 @@ function keyboardEvent(event){
 	var step = 0.01;
 	var distance = camera.clone().position.sub(new THREE.Vector3(0, 0, 0));
 	if(event.keyCode === 37){//left
-		
+		camera.rotation.y += Math.PI * step;
 	}
-	else if(event.keyCode === 38){//forward
-		//camera.position.set(camera.clone().position.add( step * distance));
-		//camera.zoom = step;
+	else if(event.keyCode === 38){//up
+		camera.rotation.x += Math.PI * step;
 	}
 	else if(event.keyCode === 39){//right
-		
+		camera.rotation.y -= Math.PI * step;
 	}
-	else if(event.keyCode === 40){//backward
-		//camera.position.set(camera.clone().position.sub( step * distance));
-		//camera.zoom = -step;
+	else if(event.keyCode === 40){//down
+		camera.rotation.x -= Math.PI * step;
 	}
 	else if(event.keyCode === 32){// space to shoot
 		newBullet();
