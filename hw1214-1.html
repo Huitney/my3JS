@@ -14,7 +14,7 @@
 <body style='overflow:hidden'> 
 
 <div id='heading'>
-	<h1 style='color:red'>Counter Dice</h1>
+	<h1 style='color:red'>Shooting Game</h1>
 </div>
 
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,7 +31,7 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 var camera, scene, renderer;
 var sceneHUD, cameraHUD;
 var raycaster;
-var aframe, cubes, gun;
+var aframe, spheres, gun;
 var shootDirection = [new THREE.Vector3(0, 0, 0),], bullets = [];
 init();
 animate();
@@ -63,16 +63,16 @@ function init() {
 	renderer.autoClear = false;
 	sceneHUD = new THREE.Scene();
 	//target
-	var cube = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20),
+	var sphere = new THREE.Mesh(new THREE.SphereGeometry( 10, 32, 32 ),
 	new THREE.MeshLambertMaterial({
 	color: 0xff1234
     }));
-	cubes = [];
+	spheres = [];
 	for (let i = 0; i < 5; i++) {
-		let cc = cube.clone();
-		cc.position.set ((-1+Math.random()*2)*100, 10, (-1+Math.random()*2)*100)
-		cubes.push (cc);
-		scene.add (cc);
+		let ss = sphere.clone();
+		ss.position.set ((-1+Math.random()*2)*100, 10, (-1+Math.random()*2)*100);
+		spheres.push (ss);
+		scene.add (ss);
 	}
 	
 	var whRatio = window.innerWidth / window.innerHeight;
@@ -196,27 +196,30 @@ function newBullet(){
 function shootingAnimate(){
 	var speed = 1;
 	for(let i = 1;i < bullets.length;i++){
-		//moving
-		bullets[i].position.x += shootDirection[i].x * speed;
-		bullets[i].position.y += shootDirection[i].y * speed;
-		bullets[i].position.z += shootDirection[i].z * speed;
-		//out
-		if(bullets[i].position.x > 150 | bullets[i].position.x < -150 | 
-		bullets[i].position.z > 150 | bullets[i].position.z < -150){
-			scene.remove(bullets[i]);
-			bullets.pop(bullets[i]);
-			shootDirection.pop(shootDirection[i]);
-		}
-		//hit
-		
-		for(let j = 0;j < cubes.length;j++){
-			console.log(bullets[i].position);
-			if(bullets[i].position.distanceTo(cubes[j].position) < 15){
-				explosion(cubes[j]);
-				cubes.pop(cubes[j]);
+		if(bullets[i]){
+			//moving
+			bullets[i].position.x += shootDirection[i].x * speed;
+			bullets[i].position.y += shootDirection[i].y * speed;
+			bullets[i].position.z += shootDirection[i].z * speed;
+			
+			//hit
+			for(let j = 0;j < spheres.length;j++){
+				console.log(bullets[i].position);
+				if(bullets[i].position.distanceTo(spheres[j].position) < 15){
+					explosion(spheres[j]);
+					spheres.splice(j, 1);
+				}
 			}
+			
+			//out of range
+			if(bullets[i].position.x > 150 | bullets[i].position.x < -150 | 
+			bullets[i].position.z > 150 | bullets[i].position.z < -150){
+				scene.remove(bullets[i]);
+				bullets.splice(i, 1);
+				shootDirection.splice(i, 1);
+			}
+			
 		}
-		
 	}
 	setTimeout (shootingAnimate, 100);
 }
