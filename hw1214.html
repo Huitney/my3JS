@@ -128,7 +128,7 @@ function init() {
     }
 	);
 	raycaster = new THREE.Raycaster();
-	shooting();
+	shootingAnimate();
 }
 
 function onWindowResize() {
@@ -193,7 +193,7 @@ function newBullet(){
 	shootDirection.push(direction);
 }
 
-function shooting(){
+function shootingAnimate(){
 	var speed = 1;
 	for(let i = 1;i < bullets.length;i++){
 		//moving
@@ -210,6 +210,7 @@ function shooting(){
 		//hit
 		
 		for(let j = 0;j < cubes.length;j++){
+			console.log(bullets[i].position);
 			if(bullets[i].position.distanceTo(cubes[j].position) < 15){
 				explosion(cubes[j]);
 				cubes.pop(cubes[j]);
@@ -217,11 +218,12 @@ function shooting(){
 		}
 		
 	}
-	setTimeout (shooting, 100);
+	setTimeout (shootingAnimate, 100);
 }
 
 function explosion(target){
-	consol.log('hit');
+	scene.remove(target);
+	console.log('hit');
 }
 
 function moving(event){
