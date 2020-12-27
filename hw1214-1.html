@@ -32,8 +32,7 @@ var camera, scene, renderer;
 var sceneHUD, cameraHUD;
 var spheres, gun, mesh;
 var shootDirection = [new THREE.Vector3(0, 0, 0),], bullets = [];
-var uvOffsetArray = [], sprite;
-var baseS = 0,baseT = 0;
+var uvOffsetArray = [], sprite, explo = [];
 init();
 animate();
 
@@ -194,7 +193,7 @@ function newBullet(){
 }
 
 function shootingAnimate(){
-	var speed = 3;
+	var speed = 5;
 	for(let i = 1;i < bullets.length;i++){
 		if(bullets[i]){
 			//moving
@@ -224,19 +223,27 @@ function shootingAnimate(){
 }
 
 function explosion(target){
-	
 	var ex = sprite.clone();
+	explo.push(ex);
 	scene.add(ex);
-	ex.position.copy(target.clone());
+	ex.position.copy(target.position);
 	scene.remove(target);
-	for(let i = 0;i < 32;i++){
-		ex.material.map.offset.copy (uvOffsetArray[baseS][baseT]);  
-		baseT = (baseT + 1) % 8;
-		if (baseT === 0) {
-			baseS = (baseS + 1) % 4;
-		}
+	ex.material.map.offset.copy (uvOffsetArray[0][0]);  
+	setTimeout (explosionAnimate(ex, 1, 0), 200);
+}
+
+function explosionAnimate(target, baseT, baseS){
+	
+	target.material.map.offset.copy (uvOffsetArray[baseS][baseT]);  
+	if (baseT === 0) {
+		baseS = (baseS + 1) % 4;
 	}
-	scene.remove(ex);
+	if(baseT === 7 & baseS === 3){
+		scene.remove(target);
+		explo.splice(target, 1);
+	}
+	else setTimeout (explosionAnimate(target, (baseT + 1) % 8, baseS), 200);
+	
 }
 
 function keyboardEvent(event){
@@ -251,12 +258,9 @@ function keyboardEvent(event){
 		mesh.position.z -= Math.sin(step);
 	}
 	else if(event.keyCode === 38){//forward
-		camera.position.x += direction.x;
-		camera.position.y += direction.y;
-		camera.position.z += direction.z;
-		mesh.position.x += direction.x;
-		mesh.position.y += direction.y;
-		mesh.position.z += direction.z;
+		camera.rotation.x += Math.PI * step;
+		mesh.rotation.x += Math.PI * step;
+		
 	}
 	else if(event.keyCode === 39){//right
 		camera.rotation.y -= Math.PI * step;
@@ -265,12 +269,9 @@ function keyboardEvent(event){
 		mesh.position.z += Math.sin(step);
 	}
 	else if(event.keyCode === 40){//backward
-		camera.position.x -= direction.x;
-		camera.position.y -= direction.y;
-		camera.position.z -= direction.z;
-		mesh.position.x -= direction.x;
-		mesh.position.y -= direction.y;
-		mesh.position.z -= direction.z;
+		camera.rotation.x -= Math.PI * step;
+		mesh.rotation.x -= Math.PI * step;
+		
 	}
 	else if(event.keyCode === 32){//space to shoot
 		newBullet();
@@ -323,6 +324,7 @@ function buildSprite(texMat) {
 }
 
 function animate() {
+	explo.forEach (function(t) {t.lookAt (camera.position.clone().projectOnPlane(new THREE.Vector3(0, 1, 0)).add(new THREE.Vector3(0, 10, 0)))})
 	renderer.clear(true);
 	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
