@@ -30,7 +30,7 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 
 var camera, scene, renderer;
 var sceneHUD, cameraHUD;
-var boxs, gun;
+var boxs, gun, sight;
 var shootDirection = [new THREE.Vector3(0, 0, 0),], bullets = [];
 var uvOffsetArray = [], sprite, explo = [];
 init();
@@ -123,6 +123,16 @@ function init() {
 	}
 	);
 	
+	//準星
+	loader.crossOrigin = '';
+	var sightTexture = loader.load('https://i.imgur.com/Lue54nD.png');
+	var sightTexMat = new THREE.MeshBasicMaterial({
+		map: sightTexture,
+		alphaTest: 0.5
+	});
+	sight = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sightTexMat);
+	sceneHUD.add(sight);
+	
 	shootingAnimate();
 }
 
@@ -188,7 +198,7 @@ function shootingAnimate(){
 			
 			//hit
 			for(let j = 0;j < boxs.length;j++){
-				if(Math.abs(boxs[j].position.x - bullets[i].position.x) < 5 & Math.abs(boxs[j].position.y - bullets[i].position.y) < 5){
+				if(detect(bullets[i], boxs[j], shootDirection[i])){
 					explosion(boxs[j]);
 				}
 			}
@@ -232,9 +242,44 @@ function explosionAnimate(ex, baseS, baseT){
 	
 }
 
+function detect(bullet, target, motion){
+	let xMax = 5, xMin = -5, yMax = 5, yMin = -5, zMax = 5, zMin = -5;
+	var bulletNextPosition = bullet.clone().position;
+	bulletNextPosition.x += motion.x * 10;
+	bulletNextPosition.y += motion.y * 10;
+	bulletNextPosition.z += motion.z * 10;
+	var nowPosition = target.worldToLocal(bullet.clone().position).clone();
+	var nextPosition = target.worldToLocal(bulletNextPosition.clone()).clone();
+	let c1 = 0, c2 = 0;
+	
+	if(nowPosition.x < xMin)
+		c1 += 1;
+	if(nowPosition.x > xMax)
+		c1 += 2;
+	if(nowPosition.z < zMin)
+		c1 += 4;
+	if(nowPosition.z > zMax)
+		c1 += 8;
+	
+	if(nextPosition.x < xMin)
+		c2 += 1;
+	if(nextPosition.x > xMax)
+		c2 += 2;
+	if(nextPosition.z < zMin)
+		c2 += 4;
+	if(nextPosition.z > zMax)
+		c2 += 8;
+	
+	if(c1 === c2 && c1 === 0){  
+		return true;
+	}
+	else if(c1 & c2 === 0){ 
+		return true;
+	}
+	return false;
+}
+
 function keyboardEvent(event){
-	var direction = new THREE.Vector3();
-	camera.getWorldDirection(direction);
 	var step = 0.01;
 	var distance = camera.clone().position.sub(new THREE.Vector3(0, 0, 0));
 	if(event.keyCode === 37){//left
@@ -309,9 +354,14 @@ function animate() {
 		gun.position.z += direction.z * 20;
 		gun.rotation.copy(camera.clone().rotation);
 		gun.rotation.y += Math.PI/12;
-		//console.log(gun.position);
-		//console.log(camera.position);
+		sight.position.copy(gun.clone().position);
+		var vec = getGunAngle();
+		sight.position.x += vec.x * 11;
+		sight.position.y += vec.y * 11;
+		sight.position.z += vec.z * 5;
+		console.log(sight.position);
 	}
+	
 	renderer.clear(true);
 	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
