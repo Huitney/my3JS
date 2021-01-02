@@ -30,7 +30,7 @@ import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoade
 
 var camera, scene, renderer;
 var sceneHUD, cameraHUD;
-var spheres, gun, mesh;
+var spheres, gun;
 var shootDirection = [new THREE.Vector3(0, 0, 0),], bullets = [];
 var uvOffsetArray = [], sprite, explo = [];
 init();
@@ -70,7 +70,7 @@ function init() {
 	spheres = [];
 	for (let i = 0; i < 5; i++) {
 		let ss = sphere.clone();
-		ss.position.set ((-1+Math.random()*2)*100, 10, (-1+Math.random()*2)*100);
+		ss.position.set ((-1+Math.random()*2)*100, (-1+Math.random()*2)*100, (-1+Math.random()*2)*100);
 		spheres.push (ss);
 		scene.add (ss);
 	}
@@ -90,45 +90,20 @@ function init() {
 	button.position.set(window.innerWidth / 2, window.innerHeight / 2, 0);
 	
 	//bullet
-	var bulletGeometry = new THREE.SphereGeometry( 2, 32, 32 );
+	var bulletGeometry = new THREE.SphereGeometry( 1, 32, 32 );
 	var bulletMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
 	var bullet = new THREE.Mesh( bulletGeometry, bulletMaterial );
 	bullets.push(bullet);
 	
 	//gun
-	var loader = new THREE.TextureLoader();
-	loader.crossOrigin = '';
-	loader.load(
-    'https://i.imgur.com/At8n6YS.png',
-    function(texture) {
-		var texMat = new THREE.MeshBasicMaterial({
-			map: texture,
-			alphaTest: 0.5,
-			side:THREE.DoubleSide
-		});
-		gun = new THREE.Mesh(new THREE.PlaneGeometry(10, 20), texMat);
-		sceneHUD.add(gun);
-		gun.position.set(-1.5, -(halfH - halfW / 10)+6.3, 0)
-    },
-	undefined,
-    function(xhr) {
-		console.log('An error happened');
-    }
-	);
-	//mesh
-	mesh = new THREE.Mesh(new THREE.BoxGeometry( 20, 10, 10 ),
-	new THREE.MeshDepthMaterial());
-	scene.add(mesh);
-	mesh.position.copy(camera.position.clone());
-	mesh.position.z -= 15;
-	mesh.position.y -= 10;
-	mesh.position.x -= 5;
-	mesh.rotation.y += Math.PI/8*3;
+	readModel('gun');
 	
 	//explosion
+	var loader = new THREE.TextureLoader();
+	loader.crossOrigin = '';
 	setUpOffsetArray();
 	loader.load(
-	'https://i.imgur.com/6ePTx6p.png',
+	'https://i.imgur.com/eknrr9t.png',
 
 	function(texture) {
 		var texMat = new THREE.MeshBasicMaterial({
@@ -147,7 +122,6 @@ function init() {
 		console.log('An error happened');
 	}
 	);
-	
 	
 	shootingAnimate();
 }
@@ -181,21 +155,32 @@ function newBullet(){
 	var bb = bullets[0].clone();
 	bullets.push(bb);
 	scene.add(bb);
-	bb.position.copy(camera.clone().position);
+	bb.position.copy(gun.clone().position);
 	
+	var vec = getGunAngle();
+	shootDirection.push(vec);
+	
+	bb.position.x += vec.x * 23;
+	bb.position.y += vec.y * 23;
+	bb.position.z += vec.z * 23;
+}
+
+function getGunAngle(){
 	var direction = new THREE.Vector3();
 	camera.getWorldDirection(direction);
-	shootDirection.push(direction);
-	
-	bb.position.x += direction.x * 20;
-	bb.position.y += direction.y * 20;
-	bb.position.z += direction.z * 20;
+	var angle = Math.PI / 12;
+	var vec = direction.clone();
+	vec.x *= Math.sin(Math.PI/2 - angle) / Math.sin(Math.PI/2);
+	vec.z *= Math.sin(Math.PI/2 - angle) / Math.sin(Math.PI/2);
+	vec.x -= Math.sin(angle) / Math.sin(Math.PI/2);
+	vec.z += Math.sin(angle) / Math.sin(Math.PI/2);
+	return vec;
 }
 
 function shootingAnimate(){
-	var speed = 5;
+	var speed = 10;
 	for(let i = 1;i < bullets.length;i++){
-		if(bullets[i]){
+		if(bullets[i].visible){
 			//moving
 			bullets[i].position.x += shootDirection[i].x * speed;
 			bullets[i].position.y += shootDirection[i].y * speed;
@@ -203,46 +188,47 @@ function shootingAnimate(){
 			
 			//hit
 			for(let j = 0;j < spheres.length;j++){
-				if(bullets[i].position.distanceTo(spheres[j].position) < 12){
+				if(bullets[i].position.distanceTo(spheres[j].position) < 11){
 					explosion(spheres[j]);
-					spheres.splice(j, 1);
 				}
 			}
 			
 			//out of range
 			if(bullets[i].position.x > 200 | bullets[i].position.x < -200 | 
 			bullets[i].position.z > 200 | bullets[i].position.z < -200){
-				scene.remove(bullets[i]);
-				bullets.splice(i, 1);
-				shootDirection.splice(i, 1);
+				bullets[i].visible = false;
 			}
 			
 		}
 	}
-	setTimeout (shootingAnimate, 100);
+	setTimeout (shootingAnimate, 50);
 }
 
 function explosion(target){
-	var ex = sprite.clone();
-	explo.push(ex);
-	scene.add(ex);
-	ex.position.copy(target.position);
-	scene.remove(target);
-	ex.material.map.offset.copy (uvOffsetArray[0][0]);  
-	setTimeout (explosionAnimate(ex, 1, 0), 200);
+	if(target.visible){
+		var ex = sprite.clone();
+		explo.push(ex);
+		scene.add(ex);
+		
+		ex.position.copy(target.clone().position);
+		target.visible = false;
+		ex.material.map.offset.copy (uvOffsetArray[0][0]);  
+		setTimeout (explosionAnimate(ex, 0, 1), 200);
+	}
 }
 
-function explosionAnimate(target, baseT, baseS){
+function explosionAnimate(ex, baseS, baseT){
 	
-	target.material.map.offset.copy (uvOffsetArray[baseS][baseT]);  
+	ex.material.map.offset.copy (uvOffsetArray[baseS][baseT]);  
 	if (baseT === 0) {
-		baseS = (baseS + 1) % 4;
+		if(baseS === 3){
+			ex.visible = false;
+		}
+		baseS++;
+		baseS %= 4;
 	}
-	if(baseT === 7 & baseS === 3){
-		scene.remove(target);
-		explo.splice(target, 1);
-	}
-	else setTimeout (explosionAnimate(target, (baseT + 1) % 8, baseS), 200);
+	if(ex.visible)
+		setTimeout (explosionAnimate(ex, baseS, (baseT + 1) % 8), 200);
 	
 }
 
@@ -253,25 +239,15 @@ function keyboardEvent(event){
 	var distance = camera.clone().position.sub(new THREE.Vector3(0, 0, 0));
 	if(event.keyCode === 37){//left
 		camera.rotation.y += Math.PI * step;
-		mesh.rotation.y += Math.PI * step;
-		mesh.position.x -= Math.cos(step)/4;
-		mesh.position.z -= Math.sin(step);
 	}
 	else if(event.keyCode === 38){//forward
 		camera.rotation.x += Math.PI * step;
-		mesh.rotation.x += Math.PI * step;
-		
 	}
 	else if(event.keyCode === 39){//right
 		camera.rotation.y -= Math.PI * step;
-		mesh.rotation.y -= Math.PI * step;
-		mesh.position.x += Math.cos(step)/4;
-		mesh.position.z += Math.sin(step);
 	}
 	else if(event.keyCode === 40){//backward
-		camera.rotation.x -= Math.PI * step;
-		mesh.rotation.x -= Math.PI * step;
-		
+		camera.rotation.x -= Math.PI * step;		
 	}
 	else if(event.keyCode === 32){//space to shoot
 		newBullet();
@@ -319,17 +295,97 @@ function buildSprite(texMat) {
 	geometry.computeVertexNormals();
 
 	sprite = new THREE.Mesh(geometry, texMat);
-	//scene.add(sprite);
 
 }
-
+//
 function animate() {
 	explo.forEach (function(t) {t.lookAt (camera.position.clone().projectOnPlane(new THREE.Vector3(0, 1, 0)).add(new THREE.Vector3(0, 10, 0)))})
+	var direction = new THREE.Vector3();
+	camera.getWorldDirection(direction);
+	if(gun){
+		gun.position.copy(camera.clone().position);
+		gun.position.x += direction.x * 20;
+		gun.position.y -= direction.y * 10;
+		gun.position.z += direction.z * 20;
+		gun.rotation.copy(camera.clone().rotation);
+		gun.rotation.y += Math.PI/12;
+		//console.log(gun.position);
+		//console.log(camera.position);
+	}
 	renderer.clear(true);
 	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
 	renderer.render(sceneHUD, cameraHUD);
 	
+}
+
+function readModel (modelName, targetSize=40) {
+	var onProgress = function(xhr) {
+	if (xhr.lengthComputable) {
+		var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log(Math.round(percentComplete, 2) + '% downloaded');
+		}
+	};
+
+	var onError = function(xhr) {};
+
+	var mtlLoader =  new MTLLoader();
+	mtlLoader.setPath('models/');
+	mtlLoader.load(modelName+'.mtl', function(materials) {
+		materials.preload();
+
+		var objLoader =  new OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('models/');
+		objLoader.load(modelName+'.obj', function(object) {
+
+		let theObject =  unitize (object, targetSize);
+		var helper = new THREE.BoxHelper(theObject);
+		helper.visible = false;
+		theObject.add(helper);
+		theObject.name = 'OBJ'
+
+		gun = new THREE.Object3D();
+		gun.add(theObject);
+		gun.rotation.y = Math.PI/2;
+
+		scene.add (gun);
+
+		}, onProgress, onError);
+
+	});
+
+}
+
+function unitize (object, targetSize) {  
+
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+
+	// uniform scaling according to objSize
+	var objSize = Math.max (size.x, size.y, size.z);
+	var scaleSet = targetSize/objSize;
+
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, center.y*scaleSet/6, -center.z*scaleSet);
+	object.traverse(
+		function (mesh){
+			if(mesh instanceof THREE.Mesh){
+				mesh.material.side = THREE.DoubleSide;
+			}
+		}
+	);
+	return theObject;
 }
 
 </script>
