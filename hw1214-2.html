@@ -233,8 +233,7 @@ function explosionAnimate(ex, baseS, baseT){
 }
 
 function keyboardEvent(event){
-	var direction = new THREE.Vector3();
-	camera.getWorldDirection(direction);
+	
 	var step = 0.01;
 	var distance = camera.clone().position.sub(new THREE.Vector3(0, 0, 0));
 	if(event.keyCode === 37){//left
