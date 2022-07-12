@@ -140,7 +140,7 @@ function onWindowResize() {
 
 	// orthographic camera resize
 	var halfH = 20;
-	var halfW = halfH * whRatio
+	var halfW = halfH * whRatio;
 
 	cameraHUD.left = -halfW;
 	cameraHUD.right = halfW;
@@ -317,9 +317,9 @@ function animate() {
 		gun.rotation.copy(camera.clone().rotation);
 		gun.rotation.y += Math.PI/12;
 		var v = new THREE.Vector3(0, 20, 50);
-		var view = gun.localToWorld(v);
+		var view = gun.getWorldPosition(v);
 		v = (0, 20, -100);
-		var look = gun.localToWorld(v);
+		var look = gun.getWorldPosition(v);
 		camera.position.set(view);
 		camera.lookAt(look);
 		cameraHUD.position.set(view);
