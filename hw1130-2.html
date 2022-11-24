@@ -7,11 +7,17 @@
 </style>
 </head>
 <body style='overflow:hidden'> 
-
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three/build/three.module.js"
+    }
+}
+</script>
 <script type ="module">
 javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
 
-import * as THREE from 'https://unpkg.com/three/build/three.module.js';
+import * as THREE from 'three';
 import { OrbitControls } from 'https://unpkg.com/three/examples/jsm/controls/OrbitControls.js';
 import { MTLLoader } from 'https://unpkg.com/three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'https://unpkg.com/three/examples/jsm/loaders/OBJLoader.js';
